@@ -28,6 +28,8 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
+static struct list sleeping_list;
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -92,6 +94,7 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+  list_init (&sleeping_list);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -117,6 +120,53 @@ thread_start (void)
   sema_down (&idle_started);
 }
 
+void thread_push_sleeping(int64_t ticks)
+{
+	struct thread *cur=thread_current();
+	enum intr_level old_level;
+
+	old_level=intr_disable();
+	//list_remove(&cur->elem);
+	if(list_empty(&sleeping_list))
+		list_push_front(&sleeping_list,&cur->elem);
+	else
+		list_push_back(&sleeping_list,&cur->elem);
+	cur->status=THREAD_SLEEPING;
+	cur->sleeping_ticks=ticks;
+	schedule();
+	intr_set_level(old_level);
+}
+
+void thread_sleeping_handle(void)
+{
+	enum intr_level old_level;
+	struct list_elem *e;
+
+	old_level=intr_disable();
+	for(e=list_begin(&sleeping_list);e != list_end(&sleeping_list);e=list_next(e))
+	{
+		//printf("list traverse\n");
+		struct thread *t=list_entry(e,struct thread,elem);
+		t->sleeping_ticks--;
+		if(t->sleeping_ticks == 0)
+		{
+			//printf("to go to ready\n");
+			//to reserve the elem in the sleeping_list
+			struct list_elem temp;
+			temp.prev=e->prev;
+			temp.next=e->next;
+
+			list_remove(e);
+			t->status=THREAD_READY;
+			list_push_back(&ready_list,e);
+
+			//restore
+			e=&temp;
+		}
+	}
+	intr_set_level(old_level);
+}
+
 /* Called by the timer interrupt handler at each timer tick.
    Thus, this function runs in an external interrupt context. */
 void
@@ -137,6 +187,8 @@ thread_tick (void)
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
+
+  thread_sleeping_handle();
 }
 
 /* Prints thread statistics. */
