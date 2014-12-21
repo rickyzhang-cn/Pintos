@@ -120,6 +120,25 @@ thread_start (void)
   sema_down (&idle_started);
 }
 
+//actually more instead of less,for descending order!
+bool less_func(const struct list_elem *a,
+		const struct list_elem *b, void *aux)
+{
+	char option=*((char *)aux);
+	struct thread *at=list_entry(a,struct thread,elem);
+	struct thread *bt=list_entry(b,struct thread,elem);
+	switch(option)
+	{
+		case 't':
+			return at->sleeping_ticks > bt->sleeping_ticks;
+		case 'p':
+			return at->priority > bt->priority;
+		default:
+			printf("something goes wrong\n");
+			return 0;
+	}
+}
+
 void thread_push_sleeping(int64_t ticks)
 {
 	struct thread *cur=thread_current();
@@ -127,12 +146,15 @@ void thread_push_sleeping(int64_t ticks)
 
 	old_level=intr_disable();
 	//list_remove(&cur->elem);
+	cur->sleeping_ticks=timer_ticks()+ticks;
+	list_insert_ordered(&sleeping_list,&cur->elem,less_func,"t");
+#if 0
 	if(list_empty(&sleeping_list))
 		list_push_front(&sleeping_list,&cur->elem);
 	else
 		list_push_back(&sleeping_list,&cur->elem);
+#endif
 	cur->status=THREAD_SLEEPING;
-	cur->sleeping_ticks=ticks;
 	schedule();
 	intr_set_level(old_level);
 }
@@ -140,9 +162,9 @@ void thread_push_sleeping(int64_t ticks)
 void thread_sleeping_handle(void)
 {
 	enum intr_level old_level;
-	struct list_elem *e;
 
 	old_level=intr_disable();
+#if 0
 	for(e=list_begin(&sleeping_list);e != list_end(&sleeping_list);e=list_next(e))
 	{
 		//printf("list traverse\n");
@@ -162,6 +184,32 @@ void thread_sleeping_handle(void)
 
 			//restore
 			e=&temp;
+		}
+	}
+#endif
+	if(!list_empty(&sleeping_list))
+	{
+		struct list_elem *e;
+		struct thread *t;
+		e=list_pop_front(&sleeping_list);
+		t=list_entry(e,struct thread,elem);
+		while((!list_empty(&sleeping_list)) && (t->sleeping_ticks <= timer_ticks()))
+		{
+			struct list_elem temp;
+			temp.prev=e->prev;
+			temp.next=e->next;
+
+			list_remove(e);
+			t->status=THREAD_READY;
+			list_insert_ordered(&ready_list,e,less_func,"p");
+			
+			e=&temp;
+			e=list_next(e);
+			t=list_entry(e,struct thread,elem);
+		}
+		if(e != list_end(&sleeping_list))
+		{
+			list_push_front(&sleeping_list,e);
 		}
 	}
 	intr_set_level(old_level);
@@ -297,7 +345,8 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered(&ready_list,&t->elem,less_func,'p');
+  //list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
