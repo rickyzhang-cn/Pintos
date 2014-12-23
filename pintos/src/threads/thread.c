@@ -15,6 +15,9 @@
 #include "userprog/process.h"
 #endif
 
+#include "devices/timer.h"
+#include "threads/sched.h"
+
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
@@ -72,6 +75,14 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+
+struct list_elem * thread_ready_first()
+{
+	if(!list_empty(&ready_list))
+		return list_begin(&ready_list);
+	else
+		return &(idle_thread->elem);
+}
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -237,6 +248,11 @@ thread_tick (void)
     intr_yield_on_return ();
 
   thread_sleeping_handle();
+  //timer interrupt preemption handle!
+  if(check_preemption())
+  {
+	  intr_yield_on_return();
+  }
 }
 
 /* Prints thread statistics. */
@@ -309,6 +325,11 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  if(check_preemption())
+  {
+  	thread_yield();
+  }
+
   return tid;
 }
 
@@ -345,7 +366,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_insert_ordered(&ready_list,&t->elem,less_func,'p');
+  list_insert_ordered(&ready_list,&t->elem,less_func,"p");
   //list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
   intr_set_level (old_level);
@@ -416,8 +437,9 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+  if (cur != idle_thread)
+	  list_insert_ordered(&ready_list,&cur->elem,less_func,"p");
+	  //list_push_back (&ready_list, &cur->elem);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -667,6 +689,7 @@ schedule (void)
   if (cur != next)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
+  
 }
 
 /* Returns a tid to use for a new thread. */
