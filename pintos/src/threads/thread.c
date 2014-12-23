@@ -141,7 +141,7 @@ bool less_func(const struct list_elem *a,
 	switch(option)
 	{
 		case 't':
-			return at->sleeping_ticks > bt->sleeping_ticks;
+			return at->sleeping_ticks < bt->sleeping_ticks;
 		case 'p':
 			return at->priority > bt->priority;
 		default:
@@ -202,15 +202,20 @@ void thread_sleeping_handle(void)
 	{
 		struct list_elem *e;
 		struct thread *t;
-		e=list_pop_front(&sleeping_list);
-		t=list_entry(e,struct thread,elem);
-		while((!list_empty(&sleeping_list)) && (t->sleeping_ticks <= timer_ticks()))
+		while(!list_empty(&sleeping_list))
 		{
 			struct list_elem temp;
+		
+			e=list_pop_front(&sleeping_list);
+			t=list_entry(e,struct thread,elem);
+
+			if(t->sleeping_ticks > timer_ticks())
+				break;
+
 			temp.prev=e->prev;
 			temp.next=e->next;
 
-			list_remove(e);
+			//list_remove(e);
 			t->status=THREAD_READY;
 			list_insert_ordered(&ready_list,e,less_func,"p");
 			
