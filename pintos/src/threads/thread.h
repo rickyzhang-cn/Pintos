@@ -143,7 +143,7 @@ int thread_get_load_avg (void);
 void thread_sleeping_handle(void);
 void thread_push_sleeping(int64_t ticks);
 
-struct list_elem * thread_ready_first();
+struct list_elem * thread_ready_first(void);
 bool less_func(const struct list_elem *a,
 		const struct list_elem *b, void *aux);
 #endif /* threads/thread.h */

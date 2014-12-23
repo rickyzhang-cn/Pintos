@@ -7,5 +7,5 @@ bool check_preemption()
 {
 	struct thread *cur=thread_current();
 	struct list_elem *top=thread_ready_first();
-	return less_func(top,&(cur->elem),"p");
+	return less_func(top,&cur->elem,"p");
 }

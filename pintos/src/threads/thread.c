@@ -249,10 +249,12 @@ thread_tick (void)
 
   thread_sleeping_handle();
   //timer interrupt preemption handle!
+#if 0
   if(check_preemption())
   {
 	  intr_yield_on_return();
   }
+#endif
 }
 
 /* Prints thread statistics. */
@@ -325,11 +327,12 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+#if 0
   if(check_preemption())
   {
   	thread_yield();
   }
-
+#endif
   return tid;
 }
 

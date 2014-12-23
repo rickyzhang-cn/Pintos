@@ -121,10 +121,12 @@ sema_up (struct semaphore *sema)
                                 struct thread, elem));
   sema->value++;
   intr_set_level (old_level);
+#if 0
   if(check_preemption())
   {
   	thread_yield();
   }
+#endif
 }
 
 static void sema_test_helper (void *sema_);
