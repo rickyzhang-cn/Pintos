@@ -9,3 +9,11 @@ bool check_preemption()
 	struct list_elem *top=thread_ready_first();
 	return less_func(top,&cur->elem,"p");
 }
+
+bool condvar_more_func(const struct list_elem *a,
+		const struct list_elem *b,void *aux)
+{
+	struct semaphore_elem *as=list_entry(a,struct semaphore_elem,elem);
+	struct semaphore_elem *bs=list_entry(b,struct semaphore_elem,elem);
+	return as->priority > bs->priority;
+}
