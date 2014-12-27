@@ -8,7 +8,7 @@ bool check_preemption()
 	struct thread *cur=thread_current();
 	struct list_elem *top=thread_ready_first();
 	//ASSERT(top->next != NULL);//top can not be the tail;
-	if(top->next == NULL)
+	if(top->next == NULL) //if the top is the tail,just retrun 0,only exists in init.c
 		return 0;
 	return less_func(top,&cur->elem,"p");
 }
