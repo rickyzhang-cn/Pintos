@@ -302,6 +302,7 @@ cond_wait (struct condition *cond, struct lock *lock)
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);
+  //msg("the lock is held by %s",lock->holder->name);
 }
 
 /* If any threads are waiting on COND (protected by LOCK), then

@@ -78,10 +78,7 @@ static tid_t allocate_tid (void);
 
 struct list_elem * thread_ready_first()
 {
-	if(!list_empty(&ready_list))
-		return list_begin(&ready_list);
-	else
-		return &(idle_thread->elem);
+	return list_begin(&ready_list);
 }
 
 /* Initializes the threading system by transforming the code
