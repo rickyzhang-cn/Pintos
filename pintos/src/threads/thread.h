@@ -102,6 +102,8 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 	uint64_t sleeping_ticks;
+
+	int actual_priority;
   };
 
 /* If false (default), use round-robin scheduler.

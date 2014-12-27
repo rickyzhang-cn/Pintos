@@ -88,8 +88,10 @@ main (void)
   /* Initialize ourselves as a thread so we can use locks,
      then enable console locking. */
   thread_init ();
+  msg("main thread priority:%d",thread_get_priority());
   console_init ();  
 
+  msg("main thread priority:%d",thread_get_priority());
   /* Greet user. */
   printf ("Pintos booting with %'"PRIu32" kB RAM...\n",
           init_ram_pages * PGSIZE / 1024);
@@ -116,9 +118,13 @@ main (void)
 #endif
 
   /* Start thread scheduler and enable interrupts. */
+  msg("main thread priority:%d",thread_get_priority());
   thread_start ();
+  msg("main thread priority:%d",thread_get_priority());
   serial_init_queue ();
+  msg("main thread priority:%d",thread_get_priority());
   timer_calibrate ();
+  msg("main thread priority:%d",thread_get_priority());
 
 #ifdef FILESYS
   /* Initialize file system. */

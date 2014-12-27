@@ -81,6 +81,11 @@ struct list_elem * thread_ready_first()
 	return list_begin(&ready_list);
 }
 
+void ready_list_reorder(void)
+{
+	list_sort(&ready_list,less_func,'p');
+}
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -599,6 +604,7 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  t->actual_priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 }
