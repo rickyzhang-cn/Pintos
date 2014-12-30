@@ -104,6 +104,10 @@ struct thread
 	uint64_t sleeping_ticks;
 
 	int actual_priority;
+	bool under_donation;
+	struct list locks_list;
+	struct lock *blocking_lock;
+
   };
 
 /* If false (default), use round-robin scheduler.

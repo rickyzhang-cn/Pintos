@@ -20,3 +20,45 @@ bool condvar_more_func(const struct list_elem *a,
 	struct semaphore_elem *bs=list_entry(b,struct semaphore_elem,elem);
 	return as->priority > bs->priority;
 }
+
+void thread_set_ready_priority(struct thread *t,int new_priority)
+{
+	ASSERT(new_priority >= PRI_MIN && new_priority <= PRI_MAX);
+	if(new_priority > (t->priority))
+	{
+		t->under_donation=true;
+		t->priority=new_priority;
+
+		list_sort(&ready_list,&less_func,"p");
+	}
+}
+
+void thread_set_true_priority(struct thread *t)
+{
+	t->under_donation=false;
+
+	struct list_elem *e;
+	struct list_elem *te;
+	struct thread *top_thread;
+	struct lock *l;
+	int max_priority=t->true_priority;
+
+	if(list_size(&(t->locks_list)) > 0)
+	{
+		for(e=list_begin(&(t->locks_list));e!=list_end(&(t->locks_list));e=list_next(e))
+		{
+			l=list_entry(e,struct lock,locks_elem);
+			if(list_empty(&((l->semaphore).waiters)))
+				continue;
+			else
+			{
+				te=list_begin(&((l->semaphore).waiters));
+				top_thread=list_entry(te,struct thread,elem);
+				if(top_thread->priority > max_priority)
+					max_priority=top_thread->priority;
+			}
+		}
+	}
+	t->priority=max_priority;
+	list_sort(&ready_list,less_func,"p");
+}
