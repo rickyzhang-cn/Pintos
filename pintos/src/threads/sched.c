@@ -29,7 +29,8 @@ void thread_set_ready_priority(struct thread *t,int new_priority)
 		t->under_donation=true;
 		t->priority=new_priority;
 
-		list_sort(&ready_list,&less_func,"p");
+		//list_sort(&ready_list,&less_func,"p");
+		ready_list_reorder();
 	}
 }
 
@@ -41,7 +42,7 @@ void thread_set_true_priority(struct thread *t)
 	struct list_elem *te;
 	struct thread *top_thread;
 	struct lock *l;
-	int max_priority=t->true_priority;
+	int max_priority=t->actual_priority;
 
 	if(list_size(&(t->locks_list)) > 0)
 	{
@@ -60,5 +61,7 @@ void thread_set_true_priority(struct thread *t)
 		}
 	}
 	t->priority=max_priority;
-	list_sort(&ready_list,less_func,"p");
+	//msg("in thread_set_true_priority,t,name=%s priority=%d\n",t->name,t->priority);
+	//list_sort(&ready_list,less_func,"p");
+	ready_list_reorder();
 }

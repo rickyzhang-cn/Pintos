@@ -1,6 +1,6 @@
 #ifndef SCHEDULE_H
 #define SCHEDULE_H
-#include "thread/thread.h"
+#include "threads/thread.h"
 #include "lib/kernel/list.h"
 
 bool check_preemption(void);

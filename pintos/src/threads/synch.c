@@ -78,7 +78,7 @@ sema_down (struct semaphore *sema)
 	  if((sema->containing_lock != NULL) && !list_empty(&(sema->waiters)))
 	  {
 	  	struct list_elem *waiters_top=list_begin(&(sema->waiters));
-		struct thread *waiters_top_thread=list_entry(waiters_top,struct thream,elem);
+		struct thread *waiters_top_thread=list_entry(waiters_top,struct thread,elem);
 		struct thread *lock_holder=(waiters_top_thread->blocking_lock)->holder;
 		struct semaphore *s=sema;
 
@@ -151,8 +151,11 @@ sema_up (struct semaphore *sema)
 	if(sema->containing_lock!=NULL)
 	{
 		struct thread *lock_holder=(sema->containing_lock)->holder;
+		//struct thread *lock_holder=thread_current();
 
 		thread_set_true_priority(lock_holder);
+
+		//msg("in sema_up,lock_holder,name=%s priority=%d\n",lock_holder->name,lock_holder->priority);
 
 		t->blocking_lock=NULL;
 		sema->containing_lock=NULL;
@@ -297,13 +300,13 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
-//#if 0
+#if 0
   if(lock->holder->actual_priority != lock->holder->priority)
   {
   	lock->holder->priority=lock->holder->actual_priority;
 	ready_list_reorder();
   }
-//#endif
+#endif
   list_remove(&(lock->locks_elem));
 
   sema_up (&lock->semaphore);
