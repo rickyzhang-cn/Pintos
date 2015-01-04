@@ -258,12 +258,12 @@ thread_tick (void)
 
   thread_sleeping_handle();
   //timer interrupt preemption handle!
-#if 0
+//#if 0
   if(check_preemption())
   {
 	  intr_yield_on_return();
   }
-#endif
+//#endif
 }
 
 /* Prints thread statistics. */
