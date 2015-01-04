@@ -83,7 +83,7 @@ struct list_elem * thread_ready_first()
 
 void ready_list_reorder(void)
 {
-	list_sort(&ready_list,less_func,'p');
+	list_sort(&ready_list,less_func,"p");
 }
 
 /* Initializes the threading system by transforming the code
@@ -137,6 +137,8 @@ thread_start (void)
 bool less_func(const struct list_elem *a,
 		const struct list_elem *b, void *aux)
 {
+	if(a==NULL || b==NULL)
+		return 1;
 	char option=*((char *)aux);
 	struct thread *at=list_entry(a,struct thread,elem);
 	struct thread *bt=list_entry(b,struct thread,elem);
@@ -477,7 +479,14 @@ void
 thread_set_priority (int new_priority) 
 {
   ASSERT(new_priority >= PRI_MIN && new_priority <= PRI_MAX)
-  thread_current ()->priority = new_priority;
+  if(thread_current()->under_donation)
+  {
+  	thread_current ()->actual_priority = new_priority;
+  } else
+  {
+  	thread_current ()->actual_priority = new_priority;
+	thread_current ()->priority = new_priority;
+  }
   if(check_preemption())
 	  thread_yield();
 }
