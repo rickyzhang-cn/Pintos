@@ -285,6 +285,7 @@ run_task (char **argv)
   
   printf ("Executing '%s':\n", task);
 #ifdef USERPROG
+  printf("run_task() will call process_wait()\n");
   process_wait (process_execute (task));
 #else
   run_test (task);
@@ -324,6 +325,7 @@ run_actions (char **argv)
       const struct action *a;
       int i;
 
+	  printf("run_actions() *argv:%s\n",*argv);
       /* Find action name. */
       for (a = actions; ; a++)
         if (a->name == NULL)

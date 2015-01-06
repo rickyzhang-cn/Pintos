@@ -28,8 +28,10 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
-  char *fn_copy;
+  char *fn_copy, *rz_fn_copy;
   tid_t tid;
+  char *exec_file_name;
+  char *saved_ptr;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -38,10 +40,19 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  rz_fn_copy=palloc_get_page(0); //just want to set the thread name as the executable filename
+  if(rz_fn_copy == NULL)
+	  return TID_ERROR;
+  strlcpy(rz_fn_copy,file_name,sizeof(file_name)+1);
+  exec_file_name=strtok_r(rz_fn_copy," ",&saved_ptr);
+  if(rz_file_name == NULL)
+	  return TID_ERROR;
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (exec_file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
+  palloc_free_page(rz_fn_copy);
   return tid;
 }
 
@@ -59,10 +70,27 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+
+  char *rz_fn_copy;
+  char *exec_file_name;
+  char *saved_ptr;
+  rz_fn_copy=palloc_get_page(0);
+  strlcpy(rz_fn_copy,file_name,sizeof(file_name)+1);
+  exec_file_name=strtok_r(rz_fn_copy," ",&saved_ptr);
+
+  success = load (exec_file_name, &if_.eip, &if_.esp);
+
+  if(success)
+  {
+  	struct thread *cur=thread_current();
+	push_args(&if_esp,rz_fn_copy);
+  }
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
+
+  palloc_free_page(rz_fn_copy);
+
   if (!success) 
     thread_exit ();
 
