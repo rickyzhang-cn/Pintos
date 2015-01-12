@@ -11,15 +11,16 @@ static thread_func rz_thread;
 
 static int i;
 
-#if 0
+//#if 0
 void
 test_alarm_zero (void) 
 {
   timer_sleep (0);
   pass ();
 }
-#endif
+//#endif
 
+#if 0
 void test_alarm_zero(void)
 {
 	char name[16];
@@ -36,3 +37,4 @@ static void rz_thread(void *aux)
 	while(1)
 		printf("%s\n",thread_current()->name);
 }
+#endif

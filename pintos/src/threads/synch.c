@@ -71,20 +71,20 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      //list_push_back (&sema->waiters, &thread_current ()->elem);
-	  list_insert_ordered(&sema->waiters,&thread_current()->elem,less_func,"p");
+      list_push_back (&sema->waiters, &thread_current ()->elem);
+	  //list_insert_ordered(&sema->waiters,&thread_current()->elem,less_func,"p");
 	  thread_current()->blocking_lock=sema->containing_lock;
 
 	  if((sema->containing_lock != NULL) && !list_empty(&(sema->waiters)))
 	  {
-	  	struct list_elem *waiters_top=list_begin(&(sema->waiters));
+	  	struct list_elem *waiters_top=list_min(&(sema->waiters),less_func,"p"); //actually to find the max
 		struct thread *waiters_top_thread=list_entry(waiters_top,struct thread,elem);
 		struct thread *lock_holder=(waiters_top_thread->blocking_lock)->holder;
 		struct semaphore *s=sema;
 
 		while(lock_holder->blocking_lock != NULL)
 		{
-			waiters_top=list_begin(&(s->waiters));
+			waiters_top=list_min(&(s->waiters),less_func,"p"); //actually to find the max
 			waiters_top_thread=list_entry(waiters_top,struct thread,elem);
 			lock_holder=(waiters_top_thread->blocking_lock)->holder;
 
@@ -145,9 +145,17 @@ sema_up (struct semaphore *sema)
   {
    // thread_unblock (list_entry (list_pop_front (&sema->waiters),
    //                           struct thread, elem));
+#if 0
     list_sort(&sema->waiters,less_func,"p");
-  	struct list_elem *top_elem=list_pop_front(&sema->waiters);
+  	struct list_elem *top_elem=list_max(&sema->waiters,less_func,"p");
 	struct thread *t=list_entry(top_elem,struct thread,elem);
+#endif
+	//since the less_func is actually the more_func,so in order to find the max,we use list_min
+	//sorry to make a mess here
+  	struct list_elem *max_elem=list_min(&sema->waiters,less_func,"p");
+	struct thread *t=list_entry(max_elem,struct thread,elem);
+
+	list_remove(max_elem);
 
 	if(sema->containing_lock!=NULL)
 	{
