@@ -86,6 +86,9 @@ start_process (void *file_name_)
   if(success)
   {
   	struct thread *cur=thread_current();
+	cur->image_on_disk=filesys_open(exec_file_name);
+	cur->load_status=1;
+	file_deny_write(cur->image_on_disk);
 	push_args(&if_.esp,rz_fn_copy);
   }
 
@@ -94,8 +97,13 @@ start_process (void *file_name_)
 
   palloc_free_page(rz_fn_copy);
 
-  if (!success) 
+  if (!success)
+  {
+	struct thread *cur=thread_current();
+	cur->load_status=-1;
+	cur->exit_status=-1;
     thread_exit ();
+  }
 
   printf("start_process()\n");
 
@@ -119,9 +127,18 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid) 
 {
-  return -1;
+  int child_exit_status=-1;
+  struct thread *child=tid_to_thread(child_tid); 
+  if(!child)
+  {
+  	sema_down(&child->wait);
+	child_exit_status=child->exit_status;
+	list_remove(&child->child_elem);
+	sema_up(&child->zombie);
+  }
+  return child_exit_status;
 }
 
 /* Free the current process's resources. */
@@ -130,6 +147,17 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  while(list_size(&cur->open_file_list)>0)
+  {
+  	struct list_elem *e=list_pop_front(&cur->open_file_list);
+	struct file *f=list_entry(e,struct file,open_file_elem);
+	file_close(f);
+  }
+
+  sema_init(&cur->zombie,0);
+  sema_up(&cur->wait);
+  sema_down(&cur->zombie);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -346,6 +374,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
   file_close (file);
+  printf("load() ends and success\n");
+  printf("eip:%x\n",ehdr.e_entry);
   return success;
 }
 

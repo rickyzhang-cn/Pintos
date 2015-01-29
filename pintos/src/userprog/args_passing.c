@@ -82,7 +82,7 @@ void push_args(void **esp, char *cmd_line)
 		printf("push_args():i=%d argv[i]=%s\n",i,rz_argv[i]);
 	}
 #endif
-	hex_dump(0,(void *)(*esp),512,1);
+	//hex_dump(0,(void *)(*esp),512,1);
 }
 
 void push_retval(void **esp, unsigned int retval_addr)
