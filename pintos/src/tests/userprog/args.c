@@ -12,6 +12,8 @@ main (int argc, char *argv[])
 
   test_name = "args";
 
+  char buff[1024];
+  write(0xaaaabbbb,(void *)0x08048fff,0xeeeeffff);
   msg ("begin");
   msg ("argc = %d", argc);
   for (i = 0; i <= argc; i++)
@@ -20,6 +22,8 @@ main (int argc, char *argv[])
     else
       msg ("argv[%d] = null", i);
   msg ("end");
+
+  //while(1);
 
   return 0;
 }

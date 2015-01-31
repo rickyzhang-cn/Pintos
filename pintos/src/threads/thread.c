@@ -76,6 +76,8 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
+extern struct thread *initial_thread; 
+
 struct list_elem * thread_ready_first()
 {
 	return list_begin(&ready_list);
@@ -619,6 +621,23 @@ init_thread (struct thread *t, const char *name, int priority)
   list_init(&t->locks_list);
   t->blocking_lock=NULL;
   t->under_donation=false;
+
+  list_init(&(t->child_list));
+  sema_init(&(t->wait),0);
+
+  t->exit_status=0;
+  t->image_on_disk=NULL;
+  t->load_status=-1;
+
+  list_init(&(t->open_file_list));
+  t->fd_cnt=3;
+  
+  if(t != initial_thread)
+  {
+  	struct thread* cur=thread_current();
+  	t->parent=cur;
+  	list_push_back(&(cur->child_list),&(t->child_elem));
+  }
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

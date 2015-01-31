@@ -27,15 +27,12 @@ syscall_handler (struct intr_frame *f)
 
   if(!sp || !is_user_vaddr(sp) || !get_user(sp))
 	  sys_exit(-1);
-  if(!(is_user_vaddr(sp+1)))
-	  sys_exit(-1);
 
   int syscall_num=*(sp);
 
   if(syscall_num<SYS_HALT || syscall_num>SYS_INUMBER)
 	  sys_exit(-1);
 
-  sp=sp+4;
   switch(syscall_num)
   {
   	case SYS_HALT:
@@ -45,6 +42,8 @@ syscall_handler (struct intr_frame *f)
 	}
 	case SYS_EXIT:
 	{
+  		if(!is_user_vaddr(sp+1))
+	  		sys_exit(-1);
 		struct thread *cur=thread_current();
 		int status=*(int *)(sp+1);
 		cur->exit_status=status;
@@ -53,6 +52,8 @@ syscall_handler (struct intr_frame *f)
 	}
 	case SYS_EXEC:
 	{
+  		if(!is_user_vaddr(sp+1))
+	  		sys_exit(-1);
 		char *cmd_line=*(sp+1);
 		if(!cmd_line && !valid(cmd_line))
 			sys_exit(-1);
@@ -62,23 +63,30 @@ syscall_handler (struct intr_frame *f)
 	}
 	case SYS_WAIT:
 	{
+  		if(!is_user_vaddr(sp+1))
+	  		sys_exit(-1);
 		tid_t tid=(tid_t)*(sp+1);
 		f->eax=process_wait(tid);
 		break;
 	}
 	case SYS_CREATE:
 	{
+		sp=sp+3;
+  		if(!is_user_vaddr(sp+1))
+	  		sys_exit(-1);
 		if(!is_user_vaddr(sp+2))
 			sys_exit(-1);
 		char *file_name=*(sp+1);
 		off_t initial_size=(off_t)*(sp+2);
-		if(!file_name || !valid(file_name))
+		if(file_name==NULL || !valid(file_name))
 			sys_exit(-1);
 		f->eax=filesys_create(file_name,initial_size);
 		break;
 	}
 	case SYS_REMOVE:
 	{
+  		if(!is_user_vaddr(sp+1))
+	  		sys_exit(-1);
 		char *file_name=(char *)(sp+1);
 		if(!file_name)
 		{
@@ -98,6 +106,8 @@ syscall_handler (struct intr_frame *f)
 	}
 	case SYS_OPEN:
 	{
+  		if(!is_user_vaddr(sp+1))
+	  		sys_exit(-1);
 		char* file_name=*(sp+1);
 		struct file *file;
 		if(!file_name)
@@ -126,6 +136,8 @@ syscall_handler (struct intr_frame *f)
 	}
 	case SYS_FILESIZE:
 	{
+  	  if(!is_user_vaddr(sp+1))
+	  	sys_exit(-1);
 	  int fd=*(sp+1);
 	  struct file *file=get_file(fd);
 
@@ -139,6 +151,10 @@ syscall_handler (struct intr_frame *f)
 	}
 	case SYS_READ:
 	{
+		sp=sp+4;
+  	    if(!is_user_vaddr(sp+1))
+	  	    sys_exit(-1);
+	
 		if(!(is_user_vaddr(sp+2) && is_user_vaddr(sp+3)))
 			sys_exit(-1);
 		
@@ -146,7 +162,7 @@ syscall_handler (struct intr_frame *f)
 		uint8_t *u_buffer=*(sp+2);
 		unsigned size=*(sp+3);
 
-		if(!u_buffer)
+		if(!u_buffer || !valid(u_buffer))
 			sys_exit(-1);
 		if(size<0)
 			sys_exit(-1);
@@ -178,6 +194,9 @@ syscall_handler (struct intr_frame *f)
 	}
 	case SYS_WRITE:
 	{
+	  sp=sp+4;//opps!! fix for the wrong stack
+  	  if(!is_user_vaddr(sp+1))
+	  	  sys_exit(-1);
 	  if(!(is_user_vaddr(sp+2) && is_user_vaddr(sp+3)))
 		  sys_exit(-1);
 
@@ -214,6 +233,9 @@ syscall_handler (struct intr_frame *f)
 	}
 	case SYS_SEEK:
 	{
+  	    sp=sp+3;
+		if(!is_user_vaddr(sp+1))
+	  	    sys_exit(-1);
 		if(!is_user_vaddr(sp+2))
 			sys_exit(-1);
 		int fd=*(sp+1);
@@ -233,6 +255,8 @@ syscall_handler (struct intr_frame *f)
 	}
 	case SYS_TELL:
 	{
+  	  	if(!is_user_vaddr(sp+1))
+	  		sys_exit(-1);
 		int fd=*(sp+1);
 
 		struct file *file=get_file(fd);
@@ -248,19 +272,21 @@ syscall_handler (struct intr_frame *f)
 	}
 	case SYS_CLOSE:
 	{
+  	  	if(!is_user_vaddr(sp+1))
+	  		sys_exit(-1);
 		int fd=(int)*(sp+1);
 		struct file *file;
 		file=get_file(fd);
 		if(!file)
 		{
 			f->eax=-1;
-			break;
+			sys_exit(-1);
 		}else
 		{
-			file_close(file);
-			f->eax=0;
 			struct list_elem *e=&(file->open_file_elem);
 			list_remove(e);
+			file_close(file);
+			f->eax=0;
 		}
 		break;
 	}

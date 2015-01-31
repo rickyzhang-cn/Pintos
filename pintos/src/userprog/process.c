@@ -79,7 +79,7 @@ start_process (void *file_name_)
   strlcpy(rz_fn_copy,file_name,strlen(file_name)+1);
   exec_file_name=strtok_r(file_name," ",&saved_ptr);
 
-  printf("file name:%s\n",exec_file_name);
+  //printf("file name:%s\n",exec_file_name);
 
   success = load (exec_file_name, &if_.eip, &if_.esp);
 
@@ -105,7 +105,7 @@ start_process (void *file_name_)
     thread_exit ();
   }
 
-  printf("start_process()\n");
+  //printf("start_process()\n");
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -130,11 +130,12 @@ int
 process_wait (tid_t child_tid) 
 {
   int child_exit_status=-1;
-  struct thread *child=tid_to_thread(child_tid); 
-  if(!child)
+  struct thread *child=tid_to_thread(child_tid);
+  if(child != NULL) 
   {
   	sema_down(&child->wait);
 	child_exit_status=child->exit_status;
+	printf("%s: exit(%d)\n",child->name,child_exit_status);
 	list_remove(&child->child_elem);
 	sema_up(&child->zombie);
   }
@@ -154,6 +155,11 @@ process_exit (void)
 	struct file *f=list_entry(e,struct file,open_file_elem);
 	file_close(f);
   }
+
+  if(cur->load_status == 1)
+	  file_close(cur->image_on_disk);
+
+  //cur->exit_status=0;
 
   sema_init(&cur->zombie,0);
   sema_up(&cur->wait);
@@ -374,8 +380,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
   file_close (file);
-  printf("load() ends and success\n");
-  printf("eip:%x\n",ehdr.e_entry);
+  //printf("load() ends and success\n");
+  //printf("eip:%x\n",ehdr.e_entry);
   return success;
 }
 

@@ -148,6 +148,7 @@ bss_init (void)
 {
   extern char _start_bss, _end_bss;
   memset (&_start_bss, 0, &_end_bss - &_start_bss);
+  printf("bss_init() &_start_bss:%x,&_end_bss:%x,length:%d\n",&_start_bss,&_end_bss,&_end_bss-&_start_bss);
 }
 
 /* Populates the base page directory and page table with the
@@ -160,6 +161,8 @@ paging_init (void)
   uint32_t *pd, *pt;
   size_t page;
   extern char _start, _end_kernel_text;
+
+  uint32_t count_of_palloc=0;
 
   pd = init_page_dir = palloc_get_page (PAL_ASSERT | PAL_ZERO);
   pt = NULL;
@@ -175,10 +178,15 @@ paging_init (void)
         {
           pt = palloc_get_page (PAL_ASSERT | PAL_ZERO);
           pd[pde_idx] = pde_create (pt);
+		  count_of_palloc++;
+		  printf("i am in palloc\n");
         }
 
       pt[pte_idx] = pte_create_kernel (vaddr, !in_kernel_text);
     }
+  printf("paging_init() init_ram_pages:%d\n",init_ram_pages);
+  printf("paging_init() &_start:%x &_end_kernel_text:%x\n",&_start,&_end_kernel_text);
+  printf("count_of_palloc:%d\n",count_of_palloc);
 
   /* Store the physical address of the page directory into CR3
      aka PDBR (page directory base register).  This activates our
@@ -285,7 +293,7 @@ run_task (char **argv)
   
   printf ("Executing '%s':\n", task);
 #ifdef USERPROG
-  printf("run_task() will call process_wait()\n");
+  //printf("run_task() will call process_wait()\n");
   process_wait (process_execute (task));
 #else
   run_test (task);

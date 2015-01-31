@@ -61,6 +61,44 @@
           retval;                                               \
         })
 
+#if 0
+/* Invokes syscall NUMBER, passing arguments ARG0, ARG1, and
+   ARG2, and returns the return value as an `int'. */
+#define syscall3(NUMBER, ARG0, ARG1, ARG2)                      \
+        ({                                                      \
+          int retval;                                           \
+          asm volatile                                          \
+            ("movl %[arg2],-4(%esp); movl %[arg1],-8(%esp); movl %[arg0],-12(%esp); "    \
+             "movl %[number],-16(%esp); subl $16, %%esp; int $0x30; addl $16, %%esp"      \
+               : "=a" (retval)                                  \
+               : [number] "i" (NUMBER),                         \
+                 [arg0] "g" (ARG0),                             \
+                 [arg1] "g" (ARG1),                             \
+                 [arg2] "g" (ARG2)                              \
+               : "memory");                                     \
+          retval;                                               \
+        })
+#endif
+
+#if 0
+/* Invokes syscall NUMBER, passing arguments ARG0, ARG1, and
+   ARG2, and returns the return value as an `int'. */
+#define syscall3(NUMBER, ARG0, ARG1, ARG2)                      \
+        ({                                                      \
+          int retval;                                           \
+          asm volatile                                          \
+        ("pushl 0xc(%esp);pushl 0xc(%esp); pushl 0xc(%esp); "   \
+             "pushl %[number]; int $0x30; addl $16, %%esp"      \
+               : "=a" (retval)                                  \
+               : [number] "i" (NUMBER),                         \
+                 [arg0] "g" (ARG0),                             \
+                 [arg1] "g" (ARG1),                             \
+                 [arg2] "g" (ARG2)                              \
+               : "memory");                                     \
+          retval;                                               \
+        })
+#endif
+
 void
 halt (void) 
 {
@@ -116,6 +154,20 @@ read (int fd, void *buffer, unsigned size)
 {
   return syscall3 (SYS_READ, fd, buffer, size);
 }
+
+/*
+int fd_r;
+const void *buffer_r;
+unsigned size_r;
+int
+write (int fd, const void *buffer, unsigned size)
+{
+  fd_r=fd;
+  buffer_r=buffer;
+  size_r=size;
+  return syscall3 (SYS_WRITE, fd_r, buffer_r, size_r);
+}
+*/
 
 int
 write (int fd, const void *buffer, unsigned size)

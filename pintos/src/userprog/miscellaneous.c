@@ -32,7 +32,7 @@ int get_user (const uint8_t *uaddr)
 bool put_user (uint8_t *udst, uint8_t byte)
 {
   int error_code;
-  asm ("movl $1f, %0; movb %b2, %1; 1:"
+  asm ("movl $1f, %0; movb %2, %1; 1:"
        : "=&a" (error_code), "=m" (*udst) : "r" (byte));
   return error_code != -1;
 }
@@ -40,7 +40,6 @@ bool put_user (uint8_t *udst, uint8_t byte)
 void sys_exit(int status){
     struct thread* cur=thread_current();
     cur->exit_status=status;
-    //printf("%s: exit(%d)\n", cur->name, status);
     thread_exit();
 }
 
