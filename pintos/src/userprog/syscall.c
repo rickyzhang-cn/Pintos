@@ -225,7 +225,7 @@ syscall_handler (struct intr_frame *f)
 		}else
 		{
 			lock_acquire(&file_lock);
-			f->eax=file_write(f,buffer,size);
+			f->eax=file_write(file,buffer,size);
 			lock_release(&file_lock);
 		}
 	  }
