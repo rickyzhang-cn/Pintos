@@ -18,6 +18,12 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "userprog/args_passing.h"
+#include "vm/frame.h"
+#include "vm/page.h"
+#include "threads/synch.h"
+#include "threads/malloc.h"
+
+extern struct lock file_lock;
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -65,6 +71,8 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
+
+  page_table_init(&thread_current()->spt);
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -165,6 +173,8 @@ process_exit (void)
   sema_up(&cur->wait);
   sema_down(&cur->zombie);
 
+  page_table_destroy(&cur->spt);
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -198,7 +208,72 @@ process_activate (void)
      interrupts. */
   tss_update ();
 }
-
+
+bool process_add_mmap(struct sup_page_entry *spte)
+{
+	struct mmap_file *mmap=(struct mmap_file *)malloc(sizeof(struct mmap_file));
+	if(!mmap)
+		return false;
+	mmap->spte=spte;
+	mmap->mapid=thread_current()->mapid;
+	list_push_back(&thread_current()->mmap_list,&mmap->elem);
+	return true;
+}
+
+void process_remove_mmap(int mapid)
+{
+	struct thread *t=thread_current();
+	struct list mmap_list=t->mmap_list;
+	struct list_elem *e,*next;
+	struct file *file=NULL;
+	uint32_t prev_mapid=0;
+	bool trigger;
+	for(e=list_begin(&mmap_list);e!=list_end(&mmap_list);e=next)
+	{
+		next=list_next(e);
+		struct mmap_file *mmap=list_entry(e,struct mmap_file,elem);
+		if(mmap->mapid==mapid)
+		{
+			struct sup_page_entry *spte=mmap->spte;
+			spte->pinned=true;
+			file=spte->file;
+			if(spte->is_loaded)
+			{
+				if(pagedir_is_dirty(t->pagedir,spte->uva))
+				{
+					lock_acquire(&file_lock);
+					file_write_at(spte->file,spte->uva,spte->read_bytes,spte->offset);
+					lock_release(&file_lock);
+				}
+				frame_free(pagedir_get_page(t->pagedir,spte->uva));
+				pagedir_clear_page(t->pagedir,spte->uva);
+			}
+			hash_delete(&t->spt,&spte->elem);
+			list_remove(&(mmap->elem));
+			trigger=mmap->mapid != prev_mapid;
+			if(trigger)
+			{
+				if(file)
+				{
+					lock_acquire(&file_lock);
+					file_close(file);
+					lock_release(&file_lock);
+				}
+				prev_mapid=mmap->mapid;
+				file=spte->file;
+			}
+			free(spte);
+			free(mmap);
+		}
+	}
+	if(file)
+	{
+		lock_acquire(&file_lock);
+		file_close(file);
+		lock_release(&file_lock);
+	}
+}
+
 /* We load ELF binaries.  The following definitions are taken
    from the ELF specification, [ELF1], more-or-less verbatim.  */
 
@@ -384,10 +459,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
   //printf("eip:%x\n",ehdr.e_entry);
   return success;
 }
-
+
 /* load() helpers. */
 
-static bool install_page (void *upage, void *kpage, bool writable);
+bool install_page (void *upage, void *kpage, bool writable);
 
 /* Checks whether PHDR describes a valid, loadable segment in
    FILE and returns true if so, false otherwise. */
@@ -448,6 +523,7 @@ validate_segment (const struct Elf32_Phdr *phdr, struct file *file)
 
    Return true if successful, false if a memory allocation error
    or disk read error occurs. */
+#if 0
 static bool
 load_segment (struct file *file, off_t ofs, uint8_t *upage,
               uint32_t read_bytes, uint32_t zero_bytes, bool writable) 
@@ -492,9 +568,41 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
     }
   return true;
 }
+#endif
+
+static bool
+load_segment (struct file *file, off_t ofs, uint8_t *upage,
+              uint32_t read_bytes, uint32_t zero_bytes, bool writable) 
+{
+  ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
+  ASSERT (pg_ofs (upage) == 0);
+  ASSERT (ofs % PGSIZE == 0);
+
+  while (read_bytes > 0 || zero_bytes > 0) 
+    {
+      /* Calculate how to fill this page.
+         We will read PAGE_READ_BYTES bytes from FILE
+         and zero the final PAGE_ZERO_BYTES bytes. */
+      size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+      size_t page_zero_bytes = PGSIZE - page_read_bytes;
+
+	  if(!add_file_to_page_table(file,ofs,upage,page_read_bytes,page_zero_bytes,writable))
+	  {
+	  	return false;
+	  }
+
+      /* Advance. */
+      read_bytes -= page_read_bytes;
+      zero_bytes -= page_zero_bytes;
+	  ofs+=page_read_bytes;
+      upage += PGSIZE;
+    }
+  return true;
+}
 
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
+#if 0
 static bool
 setup_stack (void **esp) 
 {
@@ -512,7 +620,20 @@ setup_stack (void **esp)
     }
   return success;
 }
+#endif
 
+static bool
+setup_stack (void **esp) 
+{
+  bool success = grow_stack(((uint8_t *)PHYS_BASE)-PGSIZE);
+
+  if(success)
+	  *esp=PHYS_BASE;
+  else
+	  return success;
+  return success;
+
+}
 /* Adds a mapping from user virtual address UPAGE to kernel
    virtual address KPAGE to the page table.
    If WRITABLE is true, the user process may modify the page;
@@ -522,7 +643,7 @@ setup_stack (void **esp)
    with palloc_get_page().
    Returns true on success, false if UPAGE is already mapped or
    if memory allocation fails. */
-static bool
+bool
 install_page (void *upage, void *kpage, bool writable)
 {
   struct thread *t = thread_current ();

@@ -67,6 +67,11 @@ userprog_SRC += userprog/miscellaneous.c
 # No virtual memory code yet.
 #vm_SRC = vm/file.c			# Some file.
 
+# Virtual Memory code.
+vm_SRC  = vm/frame.c
+vm_SRC += vm/page.c
+vm_SRC += vm/swap.c
+
 # Filesystem code.
 filesys_SRC  = filesys/filesys.c	# Filesystem core.
 filesys_SRC += filesys/free-map.c	# Free sector bitmap.

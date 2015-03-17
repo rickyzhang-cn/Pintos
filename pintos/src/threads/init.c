@@ -179,7 +179,7 @@ paging_init (void)
           pt = palloc_get_page (PAL_ASSERT | PAL_ZERO);
           pd[pde_idx] = pde_create (pt);
 		  count_of_palloc++;
-		  printf("i am in palloc\n");
+		  printf("pde_idx:%d\n",pde_idx);
         }
 
       pt[pte_idx] = pte_create_kernel (vaddr, !in_kernel_text);
@@ -187,6 +187,7 @@ paging_init (void)
   printf("paging_init() init_ram_pages:%d\n",init_ram_pages);
   printf("paging_init() &_start:%x &_end_kernel_text:%x\n",&_start,&_end_kernel_text);
   printf("count_of_palloc:%d\n",count_of_palloc);
+  printf("pd:%x pt:%x\n",pd,pt);
 
   /* Store the physical address of the page directory into CR3
      aka PDBR (page directory base register).  This activates our
@@ -405,6 +406,7 @@ locate_block_devices (void)
   locate_block_device (BLOCK_SCRATCH, scratch_bdev_name);
 #ifdef VM
   locate_block_device (BLOCK_SWAP, swap_bdev_name);
+  swap_init();
 #endif
 }
 

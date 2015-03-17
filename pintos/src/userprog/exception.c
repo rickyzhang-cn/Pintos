@@ -4,6 +4,11 @@
 #include "userprog/gdt.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/vaddr.h"
+#ifdef VM
+#include "vm/page.h"
+#include "vm/frame.h"
+#endif
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -119,6 +124,10 @@ kill (struct intr_frame *f)
    can find more information about both of these in the
    description of "Interrupt 14--Page Fault Exception (#PF)" in
    [IA32-v3a] section 5.15 "Exception and Interrupt Reference". */
+
+#define USER_VADDR_BOTTOM ((void *)0x08048000)
+#define STACK_HEURISTIC 32
+
 static void
 page_fault (struct intr_frame *f) 
 {
@@ -148,7 +157,7 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
-#ifdef USERPROG
+#if 0
   /*
   if(!user)
   {
@@ -161,6 +170,25 @@ page_fault (struct intr_frame *f)
   thread_exit();
 #endif
 
+#ifdef VM
+  bool load=false;
+  if(not_present && fault_addr > USER_VADDR_BOTTOM && is_user_vaddr(fault_addr))
+  {
+  	struct sup_page_entry *spte=get_spte(fault_addr);
+	if(spte)
+	{
+		load=load_page(spte);
+		spte->pinned=false;
+	}
+	else if(fault_addr >= f->esp-STACK_HEURISTIC)
+	{
+		load=grow_stack(fault_addr);
+	}
+
+	if(!load)
+	{
+#endif
+
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */
@@ -170,5 +198,9 @@ page_fault (struct intr_frame *f)
           write ? "writing" : "reading",
           user ? "user" : "kernel");
   kill (f);
+#ifdef VM
+	}
+  }
+#endif
 }
 

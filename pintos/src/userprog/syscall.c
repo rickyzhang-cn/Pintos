@@ -290,5 +290,59 @@ syscall_handler (struct intr_frame *f)
 		}
 		break;
 	}
+	case SYS_MMAP:
+	{
+  	    sp=sp+3;
+		if(!is_user_vaddr(sp+1))
+	  	    sys_exit(-1);
+		if(!is_user_vaddr(sp+2))
+			sys_exit(-1);
+		int fd=*(sp+1);
+		void *addr=*(sp+2);
+		f->eax=mmap(fd,addr);
+		break;
+	}
+	case SYS_MUNMAP:
+	{
+  	  	if(!is_user_vaddr(sp+1))
+	  		sys_exit(-1);
+		int mapid=(int)*(sp+1);
+		munmap(mapid);
+		break;
+	}
   }
+}
+
+#define ERROR -1
+#define USER_VADDR_BOTTOM 0x08048000
+int mmap(int fd, void *addr)
+{
+	struct file *file=get_file(fd);
+
+	if(!file || !file_length(file) || !is_user_vaddr(addr) || 
+			addr<USER_VADDR_BOTTOM || (((uint32_t) addr %PGSIZE) != 0))
+		return ERROR;
+	thread_current()->mapid++;
+	int32_t ofs=0;
+	uint32_t read_bytes=file_length(file);
+	while(read_bytes>0)
+	{
+		uint32_t page_read_bytes=read_bytes<PGSIZE?read_bytes:PGSIZE;
+		uint32_t page_zero_bytes=PGSIZE-page_read_bytes;
+		if(!add_mmap_to_page_table(file,ofs,addr,page_read_bytes,page_zero_bytes))
+		{
+			munmap(thread_current()->mapid);
+			return ERROR;
+		}
+
+		read_bytes-=page_read_bytes;
+		ofs+=page_read_bytes;
+		addr+=PGSIZE;
+	}
+	return thread_current()->mapid;
+}
+
+void munmap(int mapid)
+{
+	process_remove_mmap(mapid);
 }
