@@ -151,6 +151,7 @@ process_wait (tid_t child_tid)
 }
 
 /* Free the current process's resources. */
+#define MMAP_REMOVE_ALL -1
 void
 process_exit (void)
 {
@@ -173,6 +174,7 @@ process_exit (void)
   sema_up(&cur->wait);
   sema_down(&cur->zombie);
 
+  process_remove_mmap(MMAP_REMOVE_ALL);
   page_table_destroy(&cur->spt);
 
   /* Destroy the current process's page directory and switch back
@@ -223,20 +225,20 @@ bool process_add_mmap(struct sup_page_entry *spte)
 void process_remove_mmap(int mapid)
 {
 	struct thread *t=thread_current();
-	struct list mmap_list=t->mmap_list;
+	struct list *mmap_list_p=&t->mmap_list;
 	struct list_elem *e,*next;
 	struct file *file=NULL;
 	uint32_t prev_mapid=0;
 	bool trigger;
-	for(e=list_begin(&mmap_list);e!=list_end(&mmap_list);e=next)
+	for(e=list_begin(mmap_list_p);e!=list_end(mmap_list_p);e=next)
 	{
 		next=list_next(e);
 		struct mmap_file *mmap=list_entry(e,struct mmap_file,elem);
-		if(mmap->mapid==mapid)
+		if(mmap->mapid==mapid || mapid==MMAP_REMOVE_ALL)
 		{
 			struct sup_page_entry *spte=mmap->spte;
 			spte->pinned=true;
-			file=spte->file;
+			//file=spte->file;
 			if(spte->is_loaded)
 			{
 				if(pagedir_is_dirty(t->pagedir,spte->uva))
