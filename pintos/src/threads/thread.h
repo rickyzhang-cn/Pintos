@@ -124,6 +124,8 @@ struct thread
 	uint32_t mapid;
 	struct list mmap_list;
 
+	void *esp;
+
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 

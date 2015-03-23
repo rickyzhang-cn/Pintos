@@ -171,6 +171,8 @@ page_fault (struct intr_frame *f)
 #endif
 
 #ifdef VM
+  struct thread *t=thread_current();
+  void *esp=(f->cs==SEL_KCSEG) ? t->esp : f->esp;
   bool load=false;
   if(not_present && fault_addr > USER_VADDR_BOTTOM && is_user_vaddr(fault_addr))
   {
@@ -180,7 +182,7 @@ page_fault (struct intr_frame *f)
 		load=load_page(spte);
 		spte->pinned=false;
 	}
-	else if(fault_addr >= f->esp-STACK_HEURISTIC)
+	else if(fault_addr >= esp-STACK_HEURISTIC)
 	{
 		load=grow_stack(fault_addr);
 	}
@@ -192,11 +194,13 @@ page_fault (struct intr_frame *f)
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */
+#if 0
   printf ("Page fault at %p: %s error %s page in %s context.\n",
           fault_addr,
           not_present ? "not present" : "rights violation",
           write ? "writing" : "reading",
           user ? "user" : "kernel");
+#endif
   thread_current()->exit_status=-1;
   thread_exit();
   kill (f);

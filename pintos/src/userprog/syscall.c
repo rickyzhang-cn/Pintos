@@ -23,7 +23,9 @@ syscall_handler (struct intr_frame *f)
 {
   //printf ("system call!\n");
   //thread_exit ();
+  struct thread *t=thread_current();
   uint32_t *sp=f->esp;
+  t->esp=f->esp;
 
   if(!sp || !is_user_vaddr(sp) || !get_user(sp))
 	  sys_exit(-1);
