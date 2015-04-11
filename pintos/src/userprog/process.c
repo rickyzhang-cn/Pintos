@@ -271,7 +271,7 @@ void process_remove_mmap(int mapid)
 	if(file)
 	{
 		lock_acquire(&file_lock);
-		file_close(file);
+		//file_close(file);
 		lock_release(&file_lock);
 	}
 }
