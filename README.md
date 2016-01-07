@@ -2,7 +2,7 @@ Pintos Projects
 ===============
 
 The [UCB CS162](https://cs162.eecs.berkeley.edu/) course Operating Systems and Systems Programming
-include projects which is based on the Pintos.
+includes projects which is based on the Pintos.
 
 Pintos is a mini OS like MIT's xv6.
 
