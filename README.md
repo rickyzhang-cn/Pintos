@@ -23,7 +23,7 @@ And here is posts about Pintos projects published in my personal site:
 + [Pintos文件系统初探1][8]
 + [Pintos文件系统初探2][9]
 
-[1] : http://www.rickyzhang.me/blog/2014/11/environment-building-of-pintos/
+[1] : http://www.rickyzhang.me/blog/2014/11/environment-building-of-pintos/ "Pintos学习环境的搭建"
 [2] : http://www.rickyzhang.me/blog/2014/12/pintos-projects-summary-one/
 [3] : http://www.rickyzhang.me/blog/2015/01/pintos-projects-summary-two/
 [4] : http://www.rickyzhang.me/blog/2015/01/how-user-program-run/
